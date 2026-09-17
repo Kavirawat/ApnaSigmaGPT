@@ -1,6 +1,6 @@
 import { useState, useContext } from 'react';
 import { MyContext } from './MyContext.jsx';
-import './Login.css';
+import './login.css';
 
 function Login({ onLoginSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false);
