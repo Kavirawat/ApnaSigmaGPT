@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { MyContext } from './MyContext.jsx';
 import './login.css';
+import blackLogo from '../src/assets/blacklogo.png';
 
 function Login({ onLoginSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -94,11 +95,7 @@ function Login({ onLoginSuccess }) {
     <div className="loginContainer">
       <div className="loginBox">
         <div className="loginHeader">
-          <img
-            src="src/assets/blacklogo.png"
-            alt="GPT Logo"
-            className="loginLogo"
-          />
+          <img src={blackLogo} alt="GPT Logo" className="loginLogo" />
           <h2>{isSignUp ? 'Create an Account' : 'Welcome Back'}</h2>
           <p>
             {isSignUp
