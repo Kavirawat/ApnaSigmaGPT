@@ -25,25 +25,3 @@ const connectDB = async () => {
     console.log('Failed to connect with Db', err);
   }
 };
-
-// const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-// app.post('/test', async (req, res) => {
-//   if (!req.body.contents) {
-//     return res.status(400).json({ error: 'Send your oppinion' });
-//   }
-//   try {
-//     const response = await ai.models.generateContent({
-//       model: 'gemini-3.8-flash',
-//       contents: req.body.contents,
-//     });
-
-//     console.log('Gemini Response:', response.text);
-
-//     return res.send({ text: response.text });
-//   } catch (err) {
-//     console.error('Error occurred:', err);
-//     res
-//       .status(500)
-//       .json({ error: 'Something went wrong', details: err.message });
-//   }
-// });

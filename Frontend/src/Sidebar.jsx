@@ -4,6 +4,9 @@ import { MyContext } from './MyContext.jsx';
 import { v1 as uuidv1 } from 'uuid';
 
 function Sidebar() {
+  const baseUrl =
+    import.meta.env.VITE_API_BASE_URL || 'https://apnasigmagpt.onrender.com';
+
   const {
     allThreads,
     setAllThreads,
@@ -18,7 +21,7 @@ function Sidebar() {
 
   const getAllThreads = async () => {
     try {
-      const response = await fetch('http://localhost:8080/api/thread');
+      const response = await fetch(`${baseUrl}/api/thread`);
       const res = await response.json();
 
       const filteredData = res.map((thread) => ({
@@ -42,17 +45,15 @@ function Sidebar() {
     setReply(null);
     setCurrThreadId(uuidv1());
     setPrevChat([]);
-    window.speechSynthesis?.cancel(); 
+    window.speechSynthesis?.cancel();
   };
 
   const changeThread = async (newThreadId) => {
-    window.speechSynthesis?.cancel(); 
+    window.speechSynthesis?.cancel();
     setCurrThreadId(newThreadId);
 
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/thread/${newThreadId}`,
-      );
+      const response = await fetch(`${baseUrl}/api/thread/${newThreadId}`);
       const res = await response.json();
 
       setPrevChat(res);
@@ -65,10 +66,9 @@ function Sidebar() {
 
   const deleteThread = async (threadId) => {
     try {
-      const response = await fetch(
-        `http://localhost:8080/api/thread/${threadId}`,
-        { method: 'DELETE' },
-      );
+      const response = await fetch(`${baseUrl}/api/thread/${threadId}`, {
+        method: 'DELETE',
+      });
       await response.json();
 
       setAllThreads((prev) =>
@@ -115,7 +115,6 @@ function Sidebar() {
         <p>By: @Kavi Rawat &#x2764;&#xfe0f;</p>
       </div>
     </section>
-    
   );
 }
 

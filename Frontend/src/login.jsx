@@ -42,9 +42,12 @@ function Login({ onLoginSuccess }) {
 
     setLoading(true);
 
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL || 'https://apnasigmagpt.onrender.com';
+
     const endpoint = isSignUp
-      ? 'http://localhost:8080/api/register'
-      : 'http://localhost:8080/api/login';
+      ? `${baseUrl}/api/register`
+      : `${baseUrl}/api/login`;
 
     const payload = isSignUp
       ? { name, username, email, password }
