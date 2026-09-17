@@ -95,16 +95,6 @@ function ChatWindow() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.body.classList.add('dark-mode');
-      document.body.classList.remove('light-mode');
-    } else {
-      document.body.classList.add('light-mode');
-      document.body.classList.remove('dark-mode');
-    }
-  }, [theme]);
-
   return (
     <div className="chatWindow">
       <div className="navbar">
