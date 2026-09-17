@@ -54,10 +54,7 @@ function ChatWindow() {
       import.meta.env.VITE_API_BASE_URL || 'https://apnasigmagpt.onrender.com';
 
     try {
-      const response = await fetch(
-        `${baseUrl}/api/chat`,
-        options,
-      );
+      const response = await fetch(`${baseUrl}/api/chat`, options);
       const data = await response.json();
 
       if (!response.ok && data.error) {
@@ -97,6 +94,16 @@ function ChatWindow() {
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+      document.body.classList.remove('light-mode');
+    } else {
+      document.body.classList.add('light-mode');
+      document.body.classList.remove('dark-mode');
+    }
+  }, [theme]);
 
   return (
     <div className="chatWindow">
