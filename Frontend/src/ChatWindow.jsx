@@ -4,6 +4,7 @@ import Chat from './Chat.jsx';
 import { MyContext } from './MyContext.jsx';
 import { useContext, useState } from 'react';
 import { CircleLoader } from 'react-spinners';
+import { API_BASE_URL } from './config.js';
 
 function ChatWindow() {
   const savedUser = sessionStorage.getItem('user')
@@ -20,6 +21,7 @@ function ChatWindow() {
     setCurrThreadId,
     setNewChat,
     setPrevChat,
+    setAllThreads,
     theme,
     setTheme,
     isSidebarOpen,
@@ -36,6 +38,9 @@ function ChatWindow() {
     setLoading(true);
     setNewChat(false);
 
+    // Save active thread ID in session so it persists on refresh
+    sessionStorage.setItem('activeThreadId', currThreadId);
+
     setPrevChat((prev) => [...prev, { role: 'user', content: userMessage }]);
     setPromt('');
 
@@ -50,11 +55,8 @@ function ChatWindow() {
       }),
     };
 
-    const baseUrl =
-      import.meta.env.VITE_API_BASE_URL || 'https://apnasigmagpt.onrender.com';
-
     try {
-      const response = await fetch(`${baseUrl}/api/chat`, options);
+      const response = await fetch(`${API_BASE_URL}/api/chat`, options);
       const data = await response.json();
 
       if (!response.ok && data.error) {
@@ -74,8 +76,17 @@ function ChatWindow() {
         ]);
       }
 
-      if (typeof setCurrThreadId === 'function') {
-        setCurrThreadId(uuidv1());
+      // Refresh sidebar threads list so new chat appears in sidebar
+      try {
+        const threadRes = await fetch(`${API_BASE_URL}/api/thread`);
+        const threadsData = await threadRes.json();
+        if (Array.isArray(threadsData)) {
+          setAllThreads(
+            threadsData.map((t) => ({ threadId: t.threadId, title: t.title })),
+          );
+        }
+      } catch (e) {
+        console.error(e);
       }
     } catch (err) {
       console.log(err);

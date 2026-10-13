@@ -5,11 +5,14 @@ import { MyContext } from './MyContext.jsx';
 import { useEffect, useState } from 'react';
 import { v1 as uuidv1 } from 'uuid';
 import Login from './login.jsx';
+import { API_BASE_URL } from './config.js';
 
 function App() {
   const [promt, setPromt] = useState('');
   const [reply, setReply] = useState(null);
-  const [currThreadId, setCurrThreadId] = useState(uuidv1());
+  const [currThreadId, setCurrThreadId] = useState(
+    () => sessionStorage.getItem('activeThreadId') || uuidv1(),
+  );
   const [prevChat, setPrevChat] = useState([]);
   const [newChat, setNewChat] = useState(true);
   const [allThreads, setAllThreads] = useState([]);
@@ -41,12 +44,34 @@ function App() {
       }
     } else {
       setIsLoggedIn(true);
-      if (window.location.pathname === '/') {
+      if (window.location.pathname !== '/dashboard') {
         window.history.pushState({}, '', '/dashboard');
         setCurrentPath('/dashboard');
       }
     }
-  }, [isLoggedIn, currentPath]);
+  }, [isLoggedIn]);
+
+  // Restore current thread's messages on page refresh
+  useEffect(() => {
+    const savedThreadId = sessionStorage.getItem('activeThreadId');
+    if (savedThreadId && isLoggedIn) {
+      fetch(`${API_BASE_URL}/api/thread/${savedThreadId}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Thread not found');
+          return res.json();
+        })
+        .then((messages) => {
+          if (Array.isArray(messages) && messages.length > 0) {
+            setPrevChat(messages);
+            setNewChat(false);
+            setCurrThreadId(savedThreadId);
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem('activeThreadId');
+        });
+    }
+  }, [isLoggedIn]);
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
@@ -79,11 +104,9 @@ function App() {
 
   return (
     <MyContext.Provider value={providerValues}>
-      {currentPath === '/' && !isLoggedIn && (
+      {!isLoggedIn ? (
         <Login onLoginSuccess={handleLoginSuccess} />
-      )}
-
-      {currentPath === '/dashboard' && isLoggedIn && (
+      ) : (
         <div className="app">
           <Sidebar />
           {isSidebarOpen && (

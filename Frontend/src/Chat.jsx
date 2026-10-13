@@ -83,105 +83,65 @@ function Chat() {
     };
   }, [prevChat]);
 
+  const safeChats = Array.isArray(prevChat) ? prevChat : [];
+
   return (
     <>
       {newChat && <h1>Start a New Chat!</h1>}
       <div className={`chats ${theme === 'dark' ? 'code-dark' : 'code-light'}`}>
-        {prevChat?.slice(0, -1).map((chat, idx) => (
-          <div
-            className={chat.role === 'user' ? 'userDiv' : 'gptDiv'}
-            key={idx}
-          >
-            {chat.role === 'user' ? (
+        {safeChats.map((chat, idx) => {
+          const isLast = idx === safeChats.length - 1;
+          const isAssistant = chat.role === 'assistant';
+          const isTyping = isLast && isAssistant && latestReply !== null;
+          const contentToDisplay = isTyping ? latestReply : chat.content;
+
+          return chat.role === 'user' ? (
+            <div className="userDiv" key={idx}>
               <p className="userMessage">{chat.content}</p>
-            ) : (
+            </div>
+          ) : (
+            <div className="gptDiv" key={idx}>
               <div className="gptMessageContainer">
                 <div className="gptMessage">
                   <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                    {chat.content}
+                    {contentToDisplay}
                   </ReactMarkdown>
                 </div>
                 <button
-                  className={`voiceBtn ${currentlySpeakingIdx === idx ? 'speakingActive' : ''}`}
-                  onClick={() => handleSpeak(chat.content, idx)}
+                  className={`voiceBtn ${
+                    isTyping
+                      ? isTypingSpeaking
+                        ? 'speakingActive'
+                        : ''
+                      : currentlySpeakingIdx === idx
+                      ? 'speakingActive'
+                      : ''
+                  }`}
+                  onClick={() =>
+                    isTyping
+                      ? handleSpeak(contentToDisplay, null, true)
+                      : handleSpeak(contentToDisplay, idx)
+                  }
                   title={
-                    currentlySpeakingIdx === idx
+                    (isTyping && isTypingSpeaking) ||
+                    (!isTyping && currentlySpeakingIdx === idx)
                       ? 'Stop narration'
                       : 'Listen to response'
                   }
                 >
                   <i
                     className={
-                      currentlySpeakingIdx === idx
+                      (isTyping && isTypingSpeaking) ||
+                      (!isTyping && currentlySpeakingIdx === idx)
                         ? 'fa-solid fa-volume-high'
                         : 'fa-solid fa-volume-xmark'
                     }
                   ></i>
                 </button>
               </div>
-            )}
-          </div>
-        ))}
-
-        {prevChat.length > 0 && (
-          <>
-            {latestReply === null ? (
-              <div className="gptDiv" key={'non-typing'}>
-                <div className="gptMessageContainer">
-                  <div className="gptMessage">
-                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                      {prevChat[prevChat.length - 1].content}
-                    </ReactMarkdown>
-                  </div>
-                  <button
-                    className={`voiceBtn ${currentlySpeakingIdx === 'last' ? 'speakingActive' : ''}`}
-                    onClick={() =>
-                      handleSpeak(prevChat[prevChat.length - 1].content, 'last')
-                    }
-                    title={
-                      currentlySpeakingIdx === 'last'
-                        ? 'Stop narration'
-                        : 'Listen to response'
-                    }
-                  >
-                    <i
-                      className={
-                        currentlySpeakingIdx === 'last'
-                          ? 'fa-solid fa-volume-high'
-                          : 'fa-solid fa-volume-xmark'
-                      }
-                    ></i>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="gptDiv" key={'typing'}>
-                <div className="gptMessageContainer">
-                  <div className="gptMessage">
-                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                      {latestReply}
-                    </ReactMarkdown>
-                  </div>
-                  <button
-                    className={`voiceBtn ${isTypingSpeaking ? 'speakingActive' : ''}`}
-                    onClick={() => handleSpeak(latestReply, null, true)}
-                    title={
-                      isTypingSpeaking ? 'Stop narration' : 'Listen to response'
-                    }
-                  >
-                    <i
-                      className={
-                        isTypingSpeaking
-                          ? 'fa-solid fa-volume-high'
-                          : 'fa-solid fa-volume-xmark'
-                      }
-                    ></i>
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+            </div>
+          );
+        })}
       </div>
     </>
   );

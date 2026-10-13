@@ -4,9 +4,9 @@ import { MyContext } from './MyContext.jsx';
 import { v1 as uuidv1 } from 'uuid';
 import blackLogo from '../src/assets/blacklogo.png';
 
+import { API_BASE_URL } from './config.js';
+
 function Sidebar() {
-  const baseUrl =
-    import.meta.env.VITE_API_BASE_URL || 'https://apnasigmagpt.onrender.com';
 
   const {
     allThreads,
@@ -22,15 +22,17 @@ function Sidebar() {
 
   const getAllThreads = async () => {
     try {
-      const response = await fetch(`${baseUrl}/api/thread`);
+      const response = await fetch(`${API_BASE_URL}/api/thread`);
+      if (!response.ok) return;
       const res = await response.json();
 
-      const filteredData = res.map((thread) => ({
-        threadId: thread.threadId,
-        title: thread.title,
-      }));
-
-      setAllThreads(filteredData);
+      if (Array.isArray(res)) {
+        const filteredData = res.map((thread) => ({
+          threadId: thread.threadId,
+          title: thread.title,
+        }));
+        setAllThreads(filteredData);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -41,10 +43,12 @@ function Sidebar() {
   }, [currThreadId]);
 
   const createNewChat = () => {
+    const newId = uuidv1();
     setNewChat(true);
     setPromt('');
     setReply(null);
-    setCurrThreadId(uuidv1());
+    setCurrThreadId(newId);
+    sessionStorage.removeItem('activeThreadId');
     setPrevChat([]);
     window.speechSynthesis?.cancel();
   };
@@ -52,22 +56,35 @@ function Sidebar() {
   const changeThread = async (newThreadId) => {
     window.speechSynthesis?.cancel();
     setCurrThreadId(newThreadId);
+    sessionStorage.setItem('activeThreadId', newThreadId);
 
     try {
-      const response = await fetch(`${baseUrl}/api/thread/${newThreadId}`);
+      const response = await fetch(`${API_BASE_URL}/api/thread/${newThreadId}`);
+      if (!response.ok) {
+        setPrevChat([]);
+        setNewChat(true);
+        return;
+      }
       const res = await response.json();
 
-      setPrevChat(res);
-      setNewChat(false);
-      setReply(null);
+      if (Array.isArray(res)) {
+        setPrevChat(res);
+        setNewChat(false);
+        setReply(null);
+      } else {
+        setPrevChat([]);
+        setNewChat(true);
+      }
     } catch (err) {
       console.log(err);
+      setPrevChat([]);
+      setNewChat(true);
     }
   };
 
   const deleteThread = async (threadId) => {
     try {
-      const response = await fetch(`${baseUrl}/api/thread/${threadId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}`, {
         method: 'DELETE',
       });
       await response.json();

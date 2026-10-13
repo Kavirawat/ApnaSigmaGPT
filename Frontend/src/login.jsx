@@ -1,7 +1,8 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { MyContext } from './MyContext.jsx';
 import './login.css';
-import blackLogo from '../src/assets/blacklogo.png';
+import blackLogo from './assets/blacklogo.png';
+import { API_BASE_URL } from './config.js';
 
 function Login({ onLoginSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -14,8 +15,14 @@ function Login({ onLoginSuccess }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isSlowNotice, setIsSlowNotice] = useState(false);
 
   const { setTheme } = useContext(MyContext);
+
+  useEffect(() => {
+    // Pre-warm the backend server on component mount (prevents cold start delays)
+    fetch(`${API_BASE_URL}/api/ping`).catch(() => {});
+  }, []);
 
   const toggleMode = () => {
     setIsSignUp(!isSignUp);
@@ -25,6 +32,7 @@ function Login({ onLoginSuccess }) {
     setPassword('');
     setName('');
     setUsername('');
+    setIsSlowNotice(false);
   };
 
   const handleSubmit = async (e) => {
@@ -32,27 +40,34 @@ function Login({ onLoginSuccess }) {
     setError(null);
     setSuccess(null);
 
-    if (isSignUp && (!email || !password || !username || !name)) {
+    const trimmedEmail = email.trim();
+    const trimmedUsername = username.trim();
+    const trimmedName = name.trim();
+
+    if (isSignUp && (!trimmedEmail || !password || !trimmedUsername || !trimmedName)) {
       setError('Please fill in all registration fields!');
       return;
     }
-    if (!isSignUp && (!email || !password)) {
+    if (!isSignUp && (!trimmedEmail || !password)) {
       setError('Please fill in all login fields!');
       return;
     }
 
     setLoading(true);
+    setIsSlowNotice(false);
 
-    const baseUrl =
-      import.meta.env.VITE_API_BASE_URL || 'https://apnasigmagpt.onrender.com';
+    // If server takes longer than 2.5s (e.g., Render free tier spinning up), notify the user
+    const slowTimer = setTimeout(() => {
+      setIsSlowNotice(true);
+    }, 2500);
 
     const endpoint = isSignUp
-      ? `${baseUrl}/api/register`
-      : `${baseUrl}/api/login`;
+      ? `${API_BASE_URL}/api/register`
+      : `${API_BASE_URL}/api/login`;
 
     const payload = isSignUp
-      ? { name, username, email, password }
-      : { email, password };
+      ? { name: trimmedName, username: trimmedUsername, email: trimmedEmail, password }
+      : { email: trimmedEmail, password };
 
     try {
       const response = await fetch(endpoint, {
@@ -87,6 +102,8 @@ function Login({ onLoginSuccess }) {
     } catch (err) {
       setError(err.message);
     } finally {
+      clearTimeout(slowTimer);
+      setIsSlowNotice(false);
       setLoading(false);
     }
   };
@@ -182,6 +199,18 @@ function Login({ onLoginSuccess }) {
           <button type="submit" className="loginBtn" disabled={loading}>
             {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Continue'}
           </button>
+          {isSlowNotice && loading && (
+            <p
+              style={{
+                fontSize: '0.8rem',
+                color: '#8e8ea0',
+                marginTop: '10px',
+                textAlign: 'center',
+              }}
+            >
+              ⏳ Server se connect ho raha hai, kripya thoda intezar karein...
+            </p>
+          )}
         </form>
 
         <p className="signupRedirect">

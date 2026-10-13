@@ -7,6 +7,10 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
+router.get('/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'SigmaGPT server is active' });
+});
+
 router.get('/thread', async (req, res) => {
   try {
     const threads = await Thread.find({}).sort({ updatedAt: -1 });
@@ -156,7 +160,8 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const trimmedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: trimmedEmail });
 
     if (!user) {
       return res.status(400).json({ error: 'Invalid Email or Password!' });
