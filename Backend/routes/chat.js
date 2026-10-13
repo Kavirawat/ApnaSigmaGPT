@@ -7,56 +7,93 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required! Please log in.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // { userId, username }
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' });
+  }
+};
+
 router.get('/ping', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'SigmaGPT server is active' });
 });
 
-router.get('/thread', async (req, res) => {
+router.get('/thread', authMiddleware, async (req, res) => {
   try {
-    const threads = await Thread.find({}).sort({ updatedAt: -1 });
+    // Only return threads created by this user (or legacy unassigned threads)
+    const threads = await Thread.find({
+      $or: [
+        { userId: req.user.userId },
+        { userId: { $exists: false } },
+        { userId: null },
+      ],
+    }).sort({ updatedAt: -1 });
 
     res.json(threads);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: 'Failed to fetched threads!' });
+    res.status(500).json({ error: 'Failed to fetch threads!' });
   }
 });
 
-router.get('/thread/:threadId', async (req, res) => {
+router.get('/thread/:threadId', authMiddleware, async (req, res) => {
   const { threadId } = req.params;
 
   try {
-    const threads = await Thread.findOne({ threadId });
+    const thread = await Thread.findOne({ threadId });
 
-    if (!threads) {
+    if (!thread) {
       return res.status(404).json({ error: 'Thread not found!' });
     }
 
-    res.json(threads.messages);
+    // Only creator can view their thread
+    if (thread.userId && thread.userId.toString() !== req.user.userId.toString()) {
+      return res.status(403).json({ error: 'You are not authorized to view this chat history!' });
+    }
+
+    res.json(thread.messages);
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: 'Failed to fetched chat!' });
+    res.status(500).json({ error: 'Failed to fetch chat!' });
   }
 });
 
-router.delete('/thread/:threadId', async (req, res) => {
+router.delete('/thread/:threadId', authMiddleware, async (req, res) => {
   const { threadId } = req.params;
 
   try {
-    const deletedThreads = await Thread.findOneAndDelete({ threadId });
+    const thread = await Thread.findOne({ threadId });
 
-    if (!deletedThreads) {
-      return res.status(404).json({ error: 'Thread could not be deleted!' });
+    if (!thread) {
+      return res.status(404).json({ error: 'Thread not found!' });
     }
 
-    res.status(200).json({ success: 'Threads is deleted successfully!' });
+    // ONLY the user who created this thread can delete it
+    if (thread.userId && thread.userId.toString() !== req.user.userId.toString()) {
+      return res.status(403).json({
+        error: 'You are not authorized to delete this history! Only the creator can delete it.',
+      });
+    }
+
+    await Thread.findOneAndDelete({ threadId });
+
+    res.status(200).json({ success: 'Thread deleted successfully!' });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: 'Failed to delete thread!' });
   }
 });
 
-router.post('/chat', async (req, res) => {
+router.post('/chat', authMiddleware, async (req, res) => {
   const { threadId, message } = req.body;
 
   if (!threadId || !message) {
@@ -68,11 +105,21 @@ router.post('/chat', async (req, res) => {
 
     if (!thread) {
       thread = new Thread({
+        userId: req.user.userId,
         threadId,
         title: message.substring(0, 30),
         messages: [{ role: 'user', content: message }],
       });
     } else {
+      // Only creator can send messages in their thread
+      if (thread.userId && thread.userId.toString() !== req.user.userId.toString()) {
+        return res.status(403).json({
+          error: 'You are not authorized to send messages in this chat!',
+        });
+      }
+      if (!thread.userId) {
+        thread.userId = req.user.userId;
+      }
       thread.messages.push({ role: 'user', content: message });
     }
 

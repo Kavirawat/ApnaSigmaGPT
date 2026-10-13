@@ -4,7 +4,7 @@ import { MyContext } from './MyContext.jsx';
 import { v1 as uuidv1 } from 'uuid';
 import blackLogo from '../src/assets/blacklogo.png';
 
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL, getAuthHeaders } from './config.js';
 
 function Sidebar() {
 
@@ -22,7 +22,9 @@ function Sidebar() {
 
   const getAllThreads = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/thread`);
+      const response = await fetch(`${API_BASE_URL}/api/thread`, {
+        headers: { ...getAuthHeaders() },
+      });
       if (!response.ok) return;
       const res = await response.json();
 
@@ -59,7 +61,9 @@ function Sidebar() {
     sessionStorage.setItem('activeThreadId', newThreadId);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/thread/${newThreadId}`);
+      const response = await fetch(`${API_BASE_URL}/api/thread/${newThreadId}`, {
+        headers: { ...getAuthHeaders() },
+      });
       if (!response.ok) {
         setPrevChat([]);
         setNewChat(true);
@@ -86,8 +90,14 @@ function Sidebar() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/thread/${threadId}`, {
         method: 'DELETE',
+        headers: { ...getAuthHeaders() },
       });
-      await response.json();
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Aap is history ko delete nahi kar sakte!');
+        return;
+      }
 
       setAllThreads((prev) =>
         prev.filter((thread) => thread.threadId !== threadId),

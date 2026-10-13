@@ -4,7 +4,7 @@ import Chat from './Chat.jsx';
 import { MyContext } from './MyContext.jsx';
 import { useContext, useState } from 'react';
 import { CircleLoader } from 'react-spinners';
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL, getAuthHeaders } from './config.js';
 
 function ChatWindow() {
   const savedUser = sessionStorage.getItem('user')
@@ -48,6 +48,7 @@ function ChatWindow() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({
         message: userMessage,
@@ -78,7 +79,9 @@ function ChatWindow() {
 
       // Refresh sidebar threads list so new chat appears in sidebar
       try {
-        const threadRes = await fetch(`${API_BASE_URL}/api/thread`);
+        const threadRes = await fetch(`${API_BASE_URL}/api/thread`, {
+          headers: { ...getAuthHeaders() },
+        });
         const threadsData = await threadRes.json();
         if (Array.isArray(threadsData)) {
           setAllThreads(
@@ -163,6 +166,7 @@ function ChatWindow() {
             onClick={() => {
               sessionStorage.removeItem('token');
               sessionStorage.removeItem('user');
+              sessionStorage.removeItem('activeThreadId');
               window.history.pushState({}, '', '/');
               window.location.reload();
             }}

@@ -5,7 +5,7 @@ import { MyContext } from './MyContext.jsx';
 import { useEffect, useState } from 'react';
 import { v1 as uuidv1 } from 'uuid';
 import Login from './login.jsx';
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL, getAuthHeaders } from './config.js';
 
 function App() {
   const [promt, setPromt] = useState('');
@@ -55,7 +55,9 @@ function App() {
   useEffect(() => {
     const savedThreadId = sessionStorage.getItem('activeThreadId');
     if (savedThreadId && isLoggedIn) {
-      fetch(`${API_BASE_URL}/api/thread/${savedThreadId}`)
+      fetch(`${API_BASE_URL}/api/thread/${savedThreadId}`, {
+        headers: { ...getAuthHeaders() },
+      })
         .then((res) => {
           if (!res.ok) throw new Error('Thread not found');
           return res.json();
